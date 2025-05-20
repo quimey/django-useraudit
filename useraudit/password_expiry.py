@@ -93,6 +93,7 @@ How to use:
 
 from collections import namedtuple
 from functools import reduce
+from contextlib import suppress
 from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -126,9 +127,10 @@ def user_pre_save(sender, instance=None, raw=False, **kwargs):
 
     # User has been re-activated. Ensure the last_login is set to None so
     # that the user isn't inactivated on next login by the AccountExpiryBackend
-    current_user = sender.objects.get(pk=user.pk)
-    if not current_user.is_active and user.is_active:
-        user.last_login = None
+    with suppress(sender.DoesNotExist):
+        current_user = sender.objects.get(pk=user.pk)
+        if not current_user.is_active and user.is_active:
+            user.last_login = None
 
 
 def update_date_changed(user, date_changed_attr):
