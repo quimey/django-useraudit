@@ -1,4 +1,5 @@
 import logging
+from contextlib import suppress
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -24,9 +25,10 @@ def user_pre_save(sender, instance=None, raw=False, **kwargs):
 
     # User has been re-activated. Ensure the failed login counter is set to 0 so
     # that the user isn't inactivated on next login by the AuthFailedLoggerBackend
-    current_user = sender.objects.get(pk=user.pk)
-    if not current_user.is_active and user.is_active:
-        LoginAttemptLogger().reset(user.username)
+    with suppress(sender.DoesNotExist):
+        current_user = sender.objects.get(pk=user.pk)
+        if not current_user.is_active and user.is_active:
+            LoginAttemptLogger().reset(user.username)
 
 
 class AuthFailedLoggerBackend(object):
