@@ -20,14 +20,14 @@ class LoginAttemptLogger(object):
     def reset(self, username):
         defaults = {
             'count': 0,
-            'timestamp': datetime.datetime.utcnow()
+            'timestamp': datetime.datetime.now(datetime.UTC)
         }
         LoginAttempt.objects.update_or_create(username=username, defaults=defaults)
 
     def increment(self, username):
         obj, created = LoginAttempt.objects.get_or_create(username=username)
         obj.count += 1
-        obj.timestamp = datetime.datetime.utcnow()
+        obj.timestamp = datetime.datetime.now(datetime.UTC)
         obj.save()
 
 
