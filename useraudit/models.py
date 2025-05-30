@@ -18,14 +18,28 @@ class LoginAttempt(models.Model):
 class LoginAttemptLogger(object):
 
     def reset(self, username):
-        defaults = {
-            'count': 0,
-            'timestamp': datetime.datetime.now(datetime.UTC)
-        }
-        LoginAttempt.objects.update_or_create(username=username, defaults=defaults)
+        # Delete any existing records for this username to avoid MultipleObjectsReturned
+        LoginAttempt.objects.filter(username=username).delete()
+        # Create a fresh record
+        LoginAttempt.objects.create(
+            username=username,
+            count=0,
+            timestamp=datetime.datetime.now(datetime.UTC)
+        )
 
     def increment(self, username):
-        obj, created = LoginAttempt.objects.get_or_create(username=username)
+        # Handle potential duplicates gracefully
+        attempts = LoginAttempt.objects.filter(username=username)
+        if attempts.count() > 1:
+            # If duplicates exist, keep the latest one and delete others
+            latest = attempts.order_by('-timestamp').first()
+            attempts.exclude(id=latest.id).delete()
+            obj = latest
+        elif attempts.count() == 1:
+            obj = attempts.first()
+        else:
+            obj = LoginAttempt.objects.create(username=username, count=0)
+        
         obj.count += 1
         obj.timestamp = datetime.datetime.now(datetime.UTC)
         obj.save()
